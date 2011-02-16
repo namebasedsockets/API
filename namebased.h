@@ -85,6 +85,13 @@ int namebased_set_service(nameorientedcon *conn, char* srv)
 #define CONNECT(conn) namebased_connect(conn)
 int namebased_connect(nameorientedcon *conn) 
 {
+	if( 0 < namestack_module_loaded() )
+		return namebased_connect_af_name(conn);
+	else 
+		return namebased_connect_legacy(conn);
+}
+
+int namebased_connect_legacy(nameorientedcon *conn) {
 	char inetbuf[INET6_ADDRSTRLEN];
 	struct addrinfo *ainf, hints;
 	int fd=0, ret=0;
@@ -119,9 +126,32 @@ int namebased_connect(nameorientedcon *conn)
 	}
 }
 
+int namebased_connect_af_name() {
+	perror("AF_NAME not yet implemented");
+}
+
 
 #define SEND(conn, data, size) write(conn->fd, data, size)
 	
 #define CLOSE(conn) close(conn->fd); conn->fd = 0;
 
+#define NAMESTACK_MODULE_NAME "namestack"
+
+int namestack_module_loaded(void) {
+	
+	int i;
+	FILE* f;
+	char line[256], mod_name[256];
+	
+	if ((f = fopen("/proc/modules", "r")) >= 0 ) {
+		while (( fgets(line, 256, f)) > 0) {
+			sscanf(line, "%s", mod_name );
+			if ( 0 == strcmp(NAMESTACK_MODULE_NAME, mod_name) )
+				return 1;
+		}
+		fclose(f);
+		return 0;
+	}
+	return -1; // Could not open /proc/modules
+}
 #endif
